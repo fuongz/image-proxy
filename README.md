@@ -8,8 +8,8 @@
 # ✨ Features
 
 - [x] Convert `.HEIC` to `.PNG`
-- [] Resize image
-- [] Convert image to any file extensions
+- [x] Convert image to any file extensions
+- [ ] Resize image
 
 # 🛠️ Development
 

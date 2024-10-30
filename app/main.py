@@ -1,5 +1,6 @@
 import base64
 import io
+from time import time
 from PIL import Image
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -39,22 +40,41 @@ async def standard_validation_exception_handler(
     )
 
 
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time()
+    response = await call_next(request)
+    print("🚀 Exec time: {} sec".format(time() - start_time))
+    return response
+
+
 @app.get(
     "/",
 )
-def proxy(url: str):
+def proxy(url: str, f: str = None):
     try:
         decoded_url = base64.b64decode(url)
         im = Image.open(requests.get(decoded_url, stream=True).raw)
         if im.format == "HEIF":
-            converted_img = convert_heic(im)
-            return Response(content=converted_img, media_type="image/png")
+            format = "PNG" if not f else f.upper()
+            img_response = image_to_byte_array(im, format)
+            media_type = f"image/{format.lower()}"
+        elif im.format == "GIF":
+            return HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY, "Unsupported media type"
+            )
+        else:
+            format = None if not f else f.upper()
+            img_response = image_to_byte_array(im, format)
+            media_type = f"image/{im.format.lower() if not format else format.lower()}"
+        return Response(content=img_response, media_type=media_type)
 
     except Exception:
         return HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Invalid URL")
 
 
-def convert_heic(im: Image, dest_type: str = "PNG"):
-    img_byte_arr = io.BytesIO()
-    im.save(img_byte_arr, format=dest_type)
-    return img_byte_arr.getvalue()
+def image_to_byte_array(image: Image, format=None) -> bytes:
+    imgByteArr = io.BytesIO()
+    image.save(imgByteArr, format=image.format if not format else format)
+    imgByteArr = imgByteArr.getvalue()
+    return imgByteArr
