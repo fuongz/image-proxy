@@ -1,17 +1,23 @@
 # Image Proxy - HEIC to PNG converter
 
-# 🚀 Tech stack:
+## 🚀 Tech stack:
 
 - FastAPI
 - Pillow
 
-# ✨ Features
+## ✨ Features
 
 - [x] Convert `.HEIC` to `.PNG`
 - [x] Convert image to any file extensions
-- [ ] Resize image
+- [x] Resize image
+- [ ] Support `.GIF` file
 
-# 🛠️ Development
+## ✅ Testing
+```
+https://api.phake.app/image/format(png):size(64:64)/https%3A%2F%2Fgithub.com%2Ftigranbs%2Ftest-heic-images%2Fraw%2Frefs%2Fheads%2Fmaster%2Fimage1.heic
+```
+
+## 🛠️ Development
 
 1. Clone this repository
 
