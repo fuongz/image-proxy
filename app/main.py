@@ -12,6 +12,9 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pillow_heif import register_heif_opener
+
+from app.utils.file import pretty_size
+
 import requests
 
 logger = logging.getLogger(__name__)
@@ -21,6 +24,10 @@ logger.addHandler(console_handler)
 formatter = logging.Formatter("%(levelname)s:   %(asctime)s %(message)s")
 
 console_handler.setFormatter(formatter)
+
+MAX_FILE_SIZE = 12400000
+SUPPORTED_FILE_TYPES = ["image/png", "image/jpeg", "image/heif"]
+SUPPORTED_OUTPUT_VIDEO_TYPES = ["JPG", "JPEG", "PNG", "WEBP"]
 
 app = FastAPI()
 
@@ -35,6 +42,7 @@ app.add_middleware(
 )
 
 register_heif_opener()
+
 
 @app.middleware("http")
 async def log_traffic(request: Request, call_next):
@@ -52,10 +60,11 @@ async def log_traffic(request: Request, call_next):
         "response_size": response.headers.get("content-length"),
         "response_headers": dict(response.headers),
         "process_time": process_time,
-        "client_host": client_host
+        "client_host": client_host,
     }
     logger.warning(str(log_params))
     return response
+
 
 @app.exception_handler(RequestValidationError)
 async def standard_validation_exception_handler(
@@ -80,9 +89,7 @@ async def add_process_time_header(request: Request, call_next):
     return response
 
 
-@app.get(
-    "/{options}/{param:path}", name="path-convertor"
-)
+@app.get("/{options}/{param:path}", name="path-convertor")
 def proxy(request: Request):
     try:
         options, url = request.path_params.values()
@@ -91,44 +98,98 @@ def proxy(request: Request):
         options_lts = options.split(":")
         for option in options_lts:
             option_key = option.split("(")[0]
-            option_value = findall(r'\(.*?\)', option)
+            option_value = findall(r"\(.*?\)", option)
             if len(option_value) > 0:
-                options_dict[option_key] = option_value[0].replace("(", "").replace(")", "")
+                options_dict[option_key] = (
+                    option_value[0].replace("(", "").replace(")", "")
+                )
         if not decoded_url:
-            return HTTPException(status.HTTP_400_BAD_REQUEST, "Unsupported media type")
+            return HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Unsupported media type. (Only support: {})".format(
+                    ", ".join(SUPPORTED_FILE_TYPES)
+                ),
+            )
+
+        resp = requests.head(decoded_url)
+
+        if resp.headers.get("Content-Type", "") not in SUPPORTED_FILE_TYPES:
+            return HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Unsupported media type. (Only support: {})".format(
+                    ", ".join(SUPPORTED_FILE_TYPES)
+                ),
+            )
+
+        if int(resp.headers.get("Content-length")) > int(MAX_FILE_SIZE):
+            return HTTPException(
+                status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                f"Max file size is {pretty_size(MAX_FILE_SIZE)}",
+            )
+
         im = Image.open(requests.get(decoded_url, stream=True).raw)
 
         # Image format option
-        image_format = "PNG" if not options_dict.get("format") else options_dict.get("format").upper()
+        image_format = (
+            "PNG"
+            if not options_dict.get("format")
+            else options_dict.get("format").upper()
+        )
         image_format = "JPEG" if image_format == "JPG" else image_format
 
-        if image_format not in ['JPG', 'JPEG', 'PNG']:
-            return HTTPException(status.HTTP_400_BAD_REQUEST, "Unsupported image format. Only support .jpg, .jpeg, .png formats.")
+        # Image quality
+        image_quality = options_dict.get("quality", None)
+
+        if image_format not in SUPPORTED_OUTPUT_VIDEO_TYPES:
+            return HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "Unsupported media type. (Only support: {})".format(
+                    ", ".join(SUPPORTED_FILE_TYPES)
+                ),
+            )
 
         if im.format == "HEIF":
-            img_response = image_to_byte_array(im, image_format, options_dict.get("size"))
+            img_response = image_to_byte_array(
+                im, image_format, options_dict.get("size"), image_quality
+            )
             media_type = f"image/{image_format.lower()}"
         elif im.format == "GIF":
             return HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY, "Unsupported media type"
             )
         else:
-            img_response = image_to_byte_array(im, image_format, options_dict.get("size"))
+            img_response = image_to_byte_array(
+                im, image_format, options_dict.get("size"), image_quality
+            )
             media_type = f"image/{im.format.lower() if not image_format else image_format.lower()}"
         return Response(content=img_response, media_type=media_type)
 
     except Exception as e:
-        logger.error(e)
-        return HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Invalid URL")
+        logger.warning(e)
+        return HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e))
 
 
-def image_to_byte_array(image: Image, image_format=None, size=None) -> bytes:
+def image_to_byte_array(
+    image: Image, image_format=None, size=None, quality=None
+) -> bytes:
     new_size = None
     if size and "," in size:
         new_size = size.split(",")
     img_byte_arr = io.BytesIO()
     if new_size:
         image.thumbnail([int(new_size[0]), int(new_size[1])], Image.Resampling.LANCZOS)
-    image.save(img_byte_arr, format=image.format if not image_format else image_format)
+
+    optimize_value = False
+    quality_value = 75
+    if image_format == "WEBP":
+        quality_value = int(quality) if quality else 75
+        optimize_value = True
+
+    image.save(
+        img_byte_arr,
+        format=image.format if not image_format else image_format,
+        quality=quality_value,
+        optimize=optimize_value,
+    )
     img_byte_arr = img_byte_arr.getvalue()
     return img_byte_arr

@@ -3,7 +3,7 @@ import "./App.css";
 function App() {
   return (
     <div className="flex justify-center items-center h-screen">
-      <div className="container prose">
+      <div className="container p-4 prose">
         <h1 className="text-zinc-900">Image Proxy</h1>
         <p className="text-zinc-700">A simple image converter API.</p>
 
@@ -25,7 +25,7 @@ function App() {
         <ul>
           <li>
             <code>OUTPUT_FORMAT</code>: output image format (supported:{" "}
-            <code>jpeg, png</code>)
+            <code>JPG, JPEG, PNG, WEBP</code>)
           </li>
           <li>
             <code>WIDTH,HEIGHT</code>: resize image to be{" "}
