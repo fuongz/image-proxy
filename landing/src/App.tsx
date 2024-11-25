@@ -10,7 +10,7 @@ function App() {
         <pre>
           <code>
             <span className="text-green-500 font-bold">GET:</span>{" "}
-            https://api.phake.app/image/format(
+            https://img.phake.app/format(
             <span className="text-red-500 italic">IMAGE_TYPE</span>
             ):size(<span className="text-yellow-500 italic">WIDTH</span>,
             <span className="text-yellow-500 italic">HEIGHT</span>)/
