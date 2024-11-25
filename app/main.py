@@ -95,10 +95,17 @@ def proxy(request: Request):
             if len(option_value) > 0:
                 options_dict[option_key] = option_value[0].replace("(", "").replace(")", "")
         if not decoded_url:
-            return HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Unsupported media type")
+            return HTTPException(status.HTTP_400_BAD_REQUEST, "Unsupported media type")
         im = Image.open(requests.get(decoded_url, stream=True).raw)
+
+        # Image format option
+        image_format = "PNG" if not options_dict.get("format") else options_dict.get("format").upper()
+        image_format = "JPEG" if image_format == "JPG" else image_format
+
+        if image_format not in ['JPG', 'JPEG', 'PNG']:
+            return HTTPException(status.HTTP_400_BAD_REQUEST, "Unsupported image format. Only support .jpg, .jpeg, .png formats.")
+
         if im.format == "HEIF":
-            image_format = "PNG" if not options_dict.get("format") else options_dict.get("format").upper()
             img_response = image_to_byte_array(im, image_format, options_dict.get("size"))
             media_type = f"image/{image_format.lower()}"
         elif im.format == "GIF":
@@ -106,7 +113,6 @@ def proxy(request: Request):
                 status.HTTP_422_UNPROCESSABLE_ENTITY, "Unsupported media type"
             )
         else:
-            image_format = None if not options_dict.get("format") else options_dict.get("format").upper()
             img_response = image_to_byte_array(im, image_format, options_dict.get("size"))
             media_type = f"image/{im.format.lower() if not image_format else image_format.lower()}"
         return Response(content=img_response, media_type=media_type)
