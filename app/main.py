@@ -26,7 +26,7 @@ formatter = logging.Formatter("%(levelname)s:   %(asctime)s %(message)s")
 console_handler.setFormatter(formatter)
 
 MAX_FILE_SIZE = 12400000
-SUPPORTED_FILE_TYPES = ["image/png", "image/jpeg", "image/heif"]
+SUPPORTED_FILE_TYPES = ["image/png", "image/jpeg", "image/heif", "image/heic"]
 SUPPORTED_OUTPUT_VIDEO_TYPES = ["JPG", "JPEG", "PNG", "WEBP"]
 
 app = FastAPI()
@@ -93,6 +93,9 @@ async def add_process_time_header(request: Request, call_next):
 def proxy(request: Request):
     try:
         options, url = request.path_params.values()
+        query_params = unquote(str(request.query_params))
+        if query_params:
+            url = f"{url}?{query_params}"
         decoded_url = unquote(url)
         options_dict = {}
         options_lts = options.split(":")

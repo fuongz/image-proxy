@@ -12,6 +12,14 @@
 - [x] Resize image
 - [ ] Support `.GIF` file
 
+## 🛠️ Technical
+
+```
+MAX_FILE_SIZE = 12400000
+SUPPORTED_FILE_TYPES = ["image/png", "image/jpeg", "image/heif", "image/heic"]
+SUPPORTED_OUTPUT_VIDEO_TYPES = ["JPG", "JPEG", "PNG", "WEBP"]
+```
+
 ## ✅ Testing
 ```
 https://api.phake.app/image/format(png):size(64:64)/https%3A%2F%2Fgithub.com%2Ftigranbs%2Ftest-heic-images%2Fraw%2Frefs%2Fheads%2Fmaster%2Fimage1.heic
