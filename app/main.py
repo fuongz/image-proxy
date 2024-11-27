@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from re import findall
 from time import time
-from urllib.parse import unquote, urlparse
+from urllib.parse import unquote, urlparse, quote
 
 from PIL import Image
 from fastapi import FastAPI, HTTPException, Request, Response, status
@@ -99,7 +99,7 @@ async def add_process_time_header(request: Request, call_next):
 def proxy(request: Request):
     try:
         options, url = request.path_params.values()
-        query_params = unquote(str(request.query_params))
+        query_params = quote(str(request.query_params))
         if query_params:
             url = f"{url}?{query_params}"
         decoded_url = unquote(url)
