@@ -1,66 +1,168 @@
 import "./App.css";
+import { VscGithubInverted } from "react-icons/vsc";
+import { useState } from "react";
 
 function App() {
+  const [format, setFormat] = useState<string>("png");
+  const [imageUrl, setImageUrl] = useState<string>(
+    "https://images.pexels.com/photos/27200179/pexels-photo-27200179/free-photo-of-landscape-of-hill-behind-flowers.jpeg",
+  );
+  const [resizeWidth, setResizeWidth] = useState<number | string>(200);
+  const [resizeHeight, setResizeHeight] = useState<number | string>(200);
+  const [quality, setQuality] = useState<string | number>();
+
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<string>("");
+
+  const handleSubmit = () => {
+    if (!imageUrl) {
+      setError("Please fill the image url");
+      return;
+    } else {
+      setError(null);
+    }
+
+    const options = [];
+    if (format) {
+      options.unshift(`format(${format})`);
+    }
+
+    if (resizeWidth && resizeHeight) {
+      options.unshift(`size(${resizeWidth},${resizeHeight})`);
+    }
+
+    if (quality) {
+      options.unshift(`quality(${quality})`);
+    }
+
+    setResult(
+      `https://img.phake.app/${options.length > 0 ? options.join(":") : "default"}/${imageUrl}`,
+    );
+  };
+
   return (
-    <div className="flex justify-center items-center h-screen">
+    <div className="flex mt-24 justify-center items-center">
       <div className="container p-4 prose">
         <h1 className="text-zinc-900">Image Proxy</h1>
         <p className="text-zinc-700">A simple image converter API.</p>
 
-        <div className="relative">
-          <div className="absolute top-0 leading-none rounded-tl-md rounded-br-md text-white font-semibold bg-green-600 py-2 px-4 left-0 text-sm">
-            GET
-          </div>
-          <pre className="bg-green-50 border-green-200 border pt-10 text-green-800">
-            <code>
-              https://img.phake.app/format(
-              <span className="text-red-500 italic">OUTPUT_FORMAT</span>
-              ):size(<span className="text-yellow-500 italic">WIDTH</span>,
-              <span className="text-yellow-500 italic">HEIGHT</span>)/
-              <span className="text-blue-500 italic">IMAGE_URL</span>
-            </code>
-          </pre>
+        <div className="relative flex gap-4">
+          <input
+            type="text"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            className="w-full border px-4 py-2 rounded border-zinc-200"
+            placeholder="Enter image url"
+          />
         </div>
 
-        <ul>
-          <li>
-            <code>OUTPUT_FORMAT</code>: output image format (supported:{" "}
-            <code>JPG, JPEG, PNG, WEBP</code>)
-          </li>
-          <li>
-            <code>WIDTH,HEIGHT</code>: resize image to be{" "}
-            <code>WIDHT,HEIGHT</code> of width per size.
-          </li>
-          <li>
-            <code>IMAGE_URL</code>: is the image URI. URI should be encoded by{" "}
-            <code>
-              <a
-                className="font-semibold"
-                href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent"
-                target="_blank"
-              >
-                encodeURIComponent
-              </a>
-            </code>
-          </li>
-        </ul>
+        <div className="relative mt-4 flex gap-4 whitespace-nowrap flex-wrap text-sm">
+          <div className="relative flex gap-2 items-center">
+            <label htmlFor="format">
+              Image <b>format</b>
+            </label>
+            <select
+              className="border border-zinc-200 px-2 py-1 rounded"
+              name="format"
+              id="format"
+              value={format}
+              onChange={(e) => {
+                setFormat(e.target.value);
+              }}
+            >
+              <option value="png">.PNG</option>
+              <option value="jpeg">.JPEG</option>
+              <option value="webp">.WEBP</option>
+            </select>
+          </div>
+          <div className="relative flex gap-2 items-center">
+            <label htmlFor="resizeWidth">
+              and resize to <b>width</b> ={" "}
+            </label>
+            <input
+              className="border w-24 border-zinc-200 px-2 py-1 rounded"
+              name="resizeWidth"
+              id="resizeWidth"
+              type="number"
+              value={resizeWidth}
+              onChange={(e) => {
+                setResizeWidth(e.target.value);
+              }}
+              placeholder="width"
+            />
+            x <b>height</b>=
+            <input
+              className="border w-24 border-zinc-200 px-2 py-1 rounded"
+              name="resizeHeight"
+              id="resizeHeight"
+              value={resizeHeight}
+              onChange={(e) => {
+                setResizeHeight(e.target.value);
+              }}
+              type="number"
+              placeholder="height"
+            />
+          </div>
+          {format === "webp" && (
+            <div className="relative flex gap-2 items-center">
+              <label htmlFor="resizeWidth">
+                and image <b>quality</b> will optimize to
+              </label>
+              <input
+                className="border w-24 border-zinc-200 px-2 py-1 rounded"
+                name="resizeWidth"
+                id="resizeWidth"
+                type="number"
+                placeholder="75"
+                value={quality}
+                onChange={(e) => {
+                  setQuality(e.target.value);
+                }}
+              />{" "}
+              %
+            </div>
+          )}
+        </div>
 
-        <p>
-          <span className="font-semibold">Demo:</span>{" "}
-          <pre className="bg-zinc-200 text-zinc-900">
-            <code>
-              https://img.phake.app/size(500,500)/https://images.pexels.com/photos/27200179/pexels-photo-27200179/free-photo-of-landscape-of-hill-behind-flowers.jpeg
-            </code>
-          </pre>
-        </p>
+        <div className="mt-8">
+          <button
+            onClick={() => {
+              handleSubmit();
+            }}
+            className="bg-blue-600 font-semibold w-full block text-white shrink-0 rounded px-4 py-2"
+          >
+            Get
+          </button>
+        </div>
+
+        {!!result && (
+          <>
+            <div className="font-semibold mt-4">RESULT:</div>
+            <textarea
+              rows={5}
+              className="mt-2 w-full px-4 py-2 rounded bg-blue-50 border border-blue-200 text-blue-500"
+            >
+              {result}
+            </textarea>
+          </>
+        )}
+
+        {!!error && (
+          <div className="mt-4 px-4 rounded py-2 text-sm bg-red-50 border border-red-200 text-red-500">
+            {error}
+          </div>
+        )}
 
         <hr />
-        <p className="text-sm">
-          Check out the{" "}
-          <a href="https://github.com/fuongz/image-proxy" target="_blank">
-            source code
+        <p className="text-sm flex gap-1 justify-center items-center">
+          <a
+            className="inline-flex gap-1 items-center"
+            href="https://github.com/fuongz/image-proxy"
+            target="_blank"
+          >
+            <VscGithubInverted /> Source code
           </a>
-          . Created by{" "}
+          | Created by{" "}
           <a href="https://phuongphung.com/?ref=image-proxy" target="_blank">
             fuongz
           </a>
