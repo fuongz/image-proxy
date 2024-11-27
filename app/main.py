@@ -26,7 +26,13 @@ formatter = logging.Formatter("%(levelname)s:   %(asctime)s %(message)s")
 console_handler.setFormatter(formatter)
 
 MAX_FILE_SIZE = 12400000
-SUPPORTED_FILE_TYPES = ["image/png", "image/jpeg", "image/heif", "image/heic"]
+SUPPORTED_FILE_TYPES = [
+    "image/png",
+    "image/jpeg",
+    "image/heif",
+    "image/heic",
+    "image/webp",
+]
 SUPPORTED_OUTPUT_VIDEO_TYPES = ["JPG", "JPEG", "PNG", "WEBP"]
 
 app = FastAPI()
