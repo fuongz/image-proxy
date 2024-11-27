@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from re import findall
 from time import time
-from urllib.parse import unquote
+from urllib.parse import unquote, urlparse
 
 from PIL import Image
 from fastapi import FastAPI, HTTPException, Request, Response, status
@@ -120,7 +120,16 @@ def proxy(request: Request):
                 ),
             )
 
-        resp = requests.head(decoded_url)
+        # Parse URL
+        parsed_url = urlparse(decoded_url)
+        resp = requests.get(
+            decoded_url,
+            headers={
+                "origin": f"{parsed_url.scheme}://{parsed_url.hostname}",
+                "referer": f"{parsed_url.scheme}://{parsed_url.hostname}",
+                "User-Agent": request.headers.get("user-agent"),
+            },
+        )
 
         if resp.headers.get("Content-Type", "") not in SUPPORTED_FILE_TYPES:
             return HTTPException(
@@ -136,7 +145,17 @@ def proxy(request: Request):
                 f"Max file size is {pretty_size(MAX_FILE_SIZE)}",
             )
 
-        im = Image.open(requests.get(decoded_url, stream=True).raw)
+        im = Image.open(
+            requests.get(
+                decoded_url,
+                headers={
+                    "origin": f"{parsed_url.scheme}://{parsed_url.hostname}",
+                    "referer": f"{parsed_url.scheme}://{parsed_url.hostname}",
+                    "User-Agent": request.headers.get("user-agent"),
+                },
+                stream=True,
+            ).raw
+        )
 
         # Image format option
         image_format = (
