@@ -1,9 +1,10 @@
 import io
 import logging
 from datetime import datetime
+from io import BytesIO
 from re import findall
-from time import time
 from urllib.parse import unquote, urlparse, quote
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from PIL import Image
 from fastapi import FastAPI, HTTPException, Request, Response, status
@@ -18,6 +19,7 @@ from app.utils.file import pretty_size
 import requests
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 console_handler = logging.StreamHandler()
 logger.addHandler(console_handler)
 
@@ -25,7 +27,10 @@ formatter = logging.Formatter("%(levelname)s:   %(asctime)s %(message)s")
 
 console_handler.setFormatter(formatter)
 
+# Constants
+SUPPORTED_SCHEMES = ["http", "https"]
 MAX_FILE_SIZE = 12400000
+TIMEOUT = 15
 SUPPORTED_FILE_TYPES = [
     "image/png",
     "image/jpeg",
@@ -33,7 +38,7 @@ SUPPORTED_FILE_TYPES = [
     "image/heic",
     "image/webp",
 ]
-SUPPORTED_OUTPUT_VIDEO_TYPES = ["JPG", "JPEG", "PNG", "WEBP"]
+SUPPORTED_OUTPUT_IMAGE_TYPES = ["JPG", "JPEG", "PNG", "WEBP"]
 
 app = FastAPI()
 
@@ -48,6 +53,20 @@ app.add_middleware(
 )
 
 register_heif_opener()
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    logger.error(str(exc.detail))
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=jsonable_encoder(
+            {
+                "status_code": exc.status_code,
+                "detail": str(exc.detail),
+            }
+        ),
+    )
 
 
 @app.middleware("http")
@@ -68,7 +87,7 @@ async def log_traffic(request: Request, call_next):
         "process_time": process_time,
         "client_host": client_host,
     }
-    logger.warning(str(log_params))
+    logger.info(str(log_params))
     return response
 
 
@@ -77,124 +96,107 @@ async def standard_validation_exception_handler(
     request: Request, exc: RequestValidationError
 ):
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_400_BAD_REQUEST,
         content=jsonable_encoder(
             {
-                "status_code": status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "status_code": status.HTTP_400_BAD_REQUEST,
                 "detail": "Missing required fields.",
             }
         ),
     )
 
 
-@app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
-    start_time = time()
-    response = await call_next(request)
-    logger.warning("🚀 Exec time: {} sec".format(time() - start_time))
-    return response
-
-
 @app.get("/{options}/{param:path}", name="path-convertor")
 def proxy(request: Request):
-    try:
-        options, url = request.path_params.values()
-        query_params = quote(str(request.query_params))
-        if query_params:
-            url = f"{url}?{query_params}"
-        decoded_url = unquote(url)
-        options_dict = {}
-        options_lts = options.split(":")
-        for option in options_lts:
-            option_key = option.split("(")[0]
-            option_value = findall(r"\(.*?\)", option)
-            if len(option_value) > 0:
-                options_dict[option_key] = (
-                    option_value[0].replace("(", "").replace(")", "")
-                )
-        if not decoded_url:
-            return HTTPException(
-                status.HTTP_403_FORBIDDEN,
-                "Unsupported media type. (Only support: {})".format(
-                    ", ".join(SUPPORTED_FILE_TYPES)
-                ),
-            )
-
-        # Parse URL
-        parsed_url = urlparse(decoded_url)
-        resp = requests.get(
-            decoded_url,
-            headers={
-                "origin": f"{parsed_url.scheme}://{parsed_url.hostname}",
-                "referer": f"{parsed_url.scheme}://{parsed_url.hostname}",
-                "User-Agent": request.headers.get("user-agent"),
-            },
+    options, url = request.path_params.values()
+    query_params = quote(str(request.query_params))
+    if query_params:
+        url = f"{url}?{query_params}"
+    decoded_url = unquote(url)
+    options_dict = {}
+    options_lts = options.split(":")
+    for option in options_lts:
+        option_key = option.split("(")[0]
+        option_value = findall(r"\(.*?\)", option)
+        if len(option_value) > 0:
+            options_dict[option_key] = option_value[0].replace("(", "").replace(")", "")
+    if not decoded_url:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Unsupported media type (1). (Only support: {})".format(
+                ", ".join(SUPPORTED_FILE_TYPES)
+            ),
         )
 
-        if resp.headers.get("Content-Type", "") not in SUPPORTED_FILE_TYPES:
-            return HTTPException(
-                status.HTTP_403_FORBIDDEN,
-                "Unsupported media type. (Only support: {})".format(
-                    ", ".join(SUPPORTED_FILE_TYPES)
-                ),
-            )
+    # Parse URL
+    parsed_url = urlparse(decoded_url)
 
-        if int(resp.headers.get("Content-length")) > int(MAX_FILE_SIZE):
-            return HTTPException(
-                status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                f"Max file size is {pretty_size(MAX_FILE_SIZE)}",
-            )
-
-        im = Image.open(
-            requests.get(
-                decoded_url,
-                headers={
-                    "origin": f"{parsed_url.scheme}://{parsed_url.hostname}",
-                    "referer": f"{parsed_url.scheme}://{parsed_url.hostname}",
-                    "User-Agent": request.headers.get("user-agent"),
-                },
-                stream=True,
-            ).raw
+    if parsed_url.scheme not in SUPPORTED_SCHEMES:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Unsupported scheme. (Only support: {})".format(
+                ", ".join(SUPPORTED_SCHEMES)
+            ),
         )
 
-        # Image format option
-        image_format = (
-            "PNG"
-            if not options_dict.get("format")
-            else options_dict.get("format").upper()
+    resp = requests.get(
+        decoded_url,
+        headers={
+            "origin": f"{parsed_url.scheme}://{parsed_url.hostname}",
+            "referer": f"{parsed_url.scheme}://{parsed_url.hostname}",
+            "User-Agent": request.headers.get("user-agent"),
+        },
+        timeout=TIMEOUT,
+    )
+
+    if resp.headers.get("Content-Type", "") not in SUPPORTED_FILE_TYPES:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Unsupported media type (2). (Only support: {})".format(
+                ", ".join(SUPPORTED_FILE_TYPES)
+            ),
         )
-        image_format = "JPEG" if image_format == "JPG" else image_format
 
-        # Image quality
-        image_quality = options_dict.get("quality", None)
+    if int(resp.headers.get("Content-length")) > int(MAX_FILE_SIZE):
+        raise HTTPException(
+            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            f"Max file size is {pretty_size(MAX_FILE_SIZE)}",
+        )
 
-        if image_format not in SUPPORTED_OUTPUT_VIDEO_TYPES:
-            return HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                "Unsupported media type. (Only support: {})".format(
-                    ", ".join(SUPPORTED_FILE_TYPES)
-                ),
-            )
+    im = Image.open(BytesIO(resp.content))
 
-        if im.format == "HEIF":
-            img_response = image_to_byte_array(
-                im, image_format, options_dict.get("size"), image_quality
-            )
-            media_type = f"image/{image_format.lower()}"
-        elif im.format == "GIF":
-            return HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, "Unsupported media type"
-            )
-        else:
-            img_response = image_to_byte_array(
-                im, image_format, options_dict.get("size"), image_quality
-            )
-            media_type = f"image/{im.format.lower() if not image_format else image_format.lower()}"
-        return Response(content=img_response, media_type=media_type)
+    # Image format option
+    image_format = (
+        "PNG" if not options_dict.get("format") else options_dict.get("format").upper()
+    )
+    image_format = "JPEG" if image_format == "JPG" else image_format
 
-    except Exception as e:
-        logger.warning(e)
-        return HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e))
+    # Image quality
+    image_quality = options_dict.get("quality", None)
+
+    if image_format not in SUPPORTED_OUTPUT_IMAGE_TYPES:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Unsupported media type (3). (Only support: {})".format(
+                ", ".join(SUPPORTED_FILE_TYPES)
+            ),
+        )
+
+    if im.format == "HEIF":
+        img_response = image_to_byte_array(
+            im, image_format, options_dict.get("size"), image_quality
+        )
+        media_type = f"image/{image_format.lower()}"
+    elif im.format == "GIF":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Unsupported media type")
+    else:
+        img_response = image_to_byte_array(
+            im, image_format, options_dict.get("size"), image_quality
+        )
+        media_type = (
+            f"image/{im.format.lower() if not image_format else image_format.lower()}"
+        )
+    return Response(content=img_response, media_type=media_type)
 
 
 def image_to_byte_array(
