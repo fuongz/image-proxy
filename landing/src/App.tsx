@@ -245,7 +245,19 @@ function App() {
         )}
 
         <hr />
-        <p className="text-sm flex gap-1 justify-center items-center">
+        <p className="mb-0 text-center">
+          <a
+            className="inline-flex gap-1 items-center"
+            href="https://status.phake.app/?utm_source=status_badge"
+            target="_blank"
+          >
+            <img
+              src="https://uptime.betterstack.com/status-badges/v3/monitor/1oiyb.svg"
+              alt="image proxy's status page"
+            />
+          </a>
+        </p>
+        <p className="text-sm mt-0 mb-8 flex gap-1 justify-center items-center">
           <a
             className="inline-flex gap-1 items-center"
             href="https://github.com/fuongz/image-proxy"
