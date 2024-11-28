@@ -62,7 +62,7 @@ function App() {
     };
 
     newOptions.format = format;
-    newOptions.size = `${resizeWidth}, ${resizeHeight}`;
+    newOptions.size = `${resizeWidth},${resizeHeight}`;
     newOptions.quality = quality;
 
     setOptions(newOptions);
@@ -185,7 +185,7 @@ function App() {
                 <VscCopy /> {copied ? "Copied!" : "Copy"}
               </div>
             </div>
-            <div className="mt-2 w-full px-4 pt-2 pb-2 text-wrap rounded bg-blue-50 border border-blue-200 text-zinc-400 relative">
+            <div className="mt-2 w-full px-4 pt-2 pb-2 text-balance break-words rounded bg-blue-50 border border-blue-200 text-zinc-400 relative">
               {PROXY_URL}
               {Object.keys(options).length > 0
                 ? Object.keys(options)
@@ -195,7 +195,10 @@ function App() {
                         {index === 0 ? "" : ":"}
                         <span className="text-orange-600">
                           {key}(
-                          <span className="font-semibold">{options[key]}</span>)
+                          <span className="font-semibold">
+                            {options[key].toString().trim()}
+                          </span>
+                          )
                         </span>
                       </span>
                     ))
@@ -206,17 +209,23 @@ function App() {
             <div className="relative mt-4">
               <div>
                 <button
+                  disabled={imageState === "loading"}
                   onClick={() => handleShowTestImage()}
-                  className="border-blue-600 text-sm inline-flex gap-4 items-center font-medium text-blue-600 border shrink-0 rounded px-4 py-2 hover:bg-blue-600 hover:text-white  transition  hover:transition"
+                  className="disabled:cursor-not-allowed disabled:hover:bg-white disabled:border-blue-300 disabled:hover:text-blue-300 disabled:text-blue-300 border-blue-600 text-sm inline-flex gap-4 items-center font-medium text-blue-600 border shrink-0 rounded px-4 py-2 hover:bg-blue-600 hover:text-white  transition  hover:transition"
                 >
-                  <VscPlay /> Preview
+                  <VscPlay />{" "}
+                  {imageState === "loading" ? "Loading..." : "Preview"}
                 </button>
               </div>
 
               {!!testUrl && (
                 <div>
-                  {imageState === "loading" ? "Loading..." : <></>}
-
+                  <span className="mt-4 block text-sm font-semibold">
+                    CODE:
+                  </span>
+                  <pre className="bg-blue-50 mt-2 border-blue-200 border text-blue-600">
+                    <code>{`<img src="${testUrl}" />`.toString()}</code>
+                  </pre>
                   <img
                     onLoad={handleOnLoadImage}
                     className={`${imageState !== "loaded" ? "hidden" : ""}`}
