@@ -157,7 +157,17 @@ def proxy(request: Request):
             ),
         )
 
-    if int(resp.headers.get("Content-length")) > int(MAX_FILE_SIZE):
+    content_length = resp.headers.get("Content-length")
+    if not content_length:
+        content_length = resp.headers.get("x-full-image-content-length")
+
+    if not content_length:
+        raise HTTPException(
+            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            f"Can not detect file size, please try another image url!",
+        )
+
+    if int(content_length) > int(MAX_FILE_SIZE):
         raise HTTPException(
             status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             f"Max file size is {pretty_size(MAX_FILE_SIZE)}",

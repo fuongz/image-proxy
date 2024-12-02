@@ -13,6 +13,14 @@ class TestConvert(unittest.TestCase):
         self.client = TestClient(app)
         self.target_image_url = "https://static9.depositphotos.com/1431107/1154/i/450/depositphotos_11542091-stock-photo-sample-stamp.jpg"
 
+    def test_no_content_length_url(self):
+        dirty_url = "https://scontent-fra3-1.cdninstagram.com/v/t51.29350-15/465209495_932741328757717_4905765761379356388_n.jpg?se=7&stp=dst-jpg_e35_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6ImltYWdlX3VybGdlbi4xNDQweDE4MDAuc2RyLmYyOTM1MC5kZWZhdWx0X2ltYWdlIn0&_nc_ht=scontent-fra3-1.cdninstagram.com&_nc_cat=101&_nc_ohc=nX_niCygskkQ7kNvgGxcX8e&_nc_gid=8d0a4d837a80403ca4f384d9e0d2da46&edm=ABmJApABAAAA&ccb=7-5&ig_cache_key=MzQ5MTUzNjk3NDA5ODYzMzY1Mw%3D%3D.3-ccb7-5&oh=00_AYC4aeI9wf7LQWkLJl6E-9Jatp4QQvnyYBimgmx_qnVT2w&oe=67524F27&_nc_sid=b41fef"
+        response = self.client.get(f"/format(webp)/{dirty_url}")
+        assert (
+            response.status_code == 200
+            and response.headers.get("content-type") == "image/webp"
+        )
+
     def test_root(self):
         response = self.client.get("/")
         assert response.status_code == 404
