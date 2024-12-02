@@ -5,15 +5,7 @@ from PIL import Image
 from fastapi.testclient import TestClient
 from fastapi import status
 
-from app.config import Config
-from app.main import app, get_config
-
-
-def get_config_override():
-    return Config(LOG_DISABLED=True)
-
-
-app.dependency_overrides[get_config] = get_config_override
+from app.main import app
 
 
 class TestConvert(unittest.TestCase):
