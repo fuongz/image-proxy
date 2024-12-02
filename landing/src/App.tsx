@@ -1,40 +1,38 @@
-import "./App.css";
-import { VscCopy, VscGithubInverted, VscPlay } from "react-icons/vsc";
-import { useEffect, useMemo, useState } from "react";
-import { useCopyToClipboard } from "react-use";
+import './App.css'
+import { VscCopy, VscGithubInverted, VscPlay } from 'react-icons/vsc'
+import { useEffect, useMemo, useState } from 'react'
+import { useCopyToClipboard } from 'react-use'
 
-const PROXY_URL: string = "https://img.phake.app/";
+const PROXY_URL: string = 'https://img.phake.app/'
 
 function App() {
-  const [copied, setCopied] = useState<boolean>(true);
-  const [testUrl, setTestUrl] = useState<null | string>(null);
-  const [imageState, setImageState] = useState<string>("idle");
-  const [state, copyToClipboard] = useCopyToClipboard();
-  const [format, setFormat] = useState<string>("png");
-  const [imageUrl, setImageUrl] = useState<string>(
-    "https://images.pexels.com/photos/27200179/pexels-photo-27200179/free-photo-of-landscape-of-hill-behind-flowers.jpeg",
-  );
-  const [resizeWidth, setResizeWidth] = useState<number | string>(200);
-  const [resizeHeight, setResizeHeight] = useState<number | string>(200);
-  const [quality, setQuality] = useState<string | number>(70);
+  const [copied, setCopied] = useState<boolean>(true)
+  const [testUrl, setTestUrl] = useState<null | string>(null)
+  const [imageState, setImageState] = useState<string>('idle')
+  const [state, copyToClipboard] = useCopyToClipboard()
+  const [format, setFormat] = useState<string>('png')
+  const [imageUrl, setImageUrl] = useState<string>('https://images.pexels.com/photos/27200179/pexels-photo-27200179/free-photo-of-landscape-of-hill-behind-flowers.jpeg')
+  const [resizeWidth, setResizeWidth] = useState<number | string>(200)
+  const [resizeHeight, setResizeHeight] = useState<number | string>(200)
+  const [quality, setQuality] = useState<string | number>(70)
 
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null)
   const [options, setOptions] = useState<{ [key: string]: string | number }>({
     format,
     size: `${resizeWidth}, ${resizeHeight}`,
     quality,
-  });
+  })
 
   useEffect(() => {
     if (!state.error && state.value) {
-      setCopied(true);
+      setCopied(true)
       setTimeout(() => {
-        setCopied(false);
-      }, 1000);
+        setCopied(false)
+      }, 1000)
     } else {
-      setCopied(false);
+      setCopied(false)
     }
-  }, [state]);
+  }, [state])
 
   const result = useMemo(() => {
     return `${PROXY_URL}${
@@ -42,42 +40,42 @@ function App() {
         ? Object.keys(options)
             .filter((key) => options[key])
             .map((key) => `${key}(${options[key]})`)
-            .join(":")
-        : "default"
-    }/${imageUrl}`;
-  }, [options]);
+            .join(':')
+        : 'default'
+    }/${imageUrl}`
+  }, [options])
 
   const handleSubmit = () => {
     if (!imageUrl) {
-      setError("Please fill the image url");
-      return;
+      setError('Please fill the image url')
+      return
     } else {
-      setError(null);
+      setError(null)
     }
 
     const newOptions = {
       format: options.format,
       quality: options.quality,
       size: options.size,
-    };
+    }
 
-    newOptions.format = format;
-    newOptions.size = `${resizeWidth},${resizeHeight}`;
-    newOptions.quality = quality;
+    newOptions.format = format
+    newOptions.size = `${resizeWidth},${resizeHeight}`
+    newOptions.quality = quality
 
-    setOptions(newOptions);
-  };
+    setOptions(newOptions)
+  }
 
   const handleShowTestImage = () => {
     if (result !== testUrl) {
-      setTestUrl(result);
-      setImageState("loading");
+      setTestUrl(result)
+      setImageState('loading')
     }
-  };
+  }
 
   const handleOnLoadImage = () => {
-    setImageState("loaded");
-  };
+    setImageState('loaded')
+  }
 
   return (
     <div className="flex mt-24 justify-center items-center">
@@ -86,13 +84,7 @@ function App() {
         <p className="text-zinc-700">A simple image converter API.</p>
 
         <div className="relative flex gap-4">
-          <input
-            type="text"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            className="w-full border px-4 py-2 rounded border-zinc-200"
-            placeholder="Enter image url"
-          />
+          <input type="text" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="w-full border px-4 py-2 rounded border-zinc-200" placeholder="Enter image url" />
         </div>
 
         <div className="relative mt-4 flex gap-4 whitespace-nowrap flex-wrap text-sm">
@@ -106,7 +98,7 @@ function App() {
               id="format"
               value={format}
               onChange={(e) => {
-                setFormat(e.target.value);
+                setFormat(e.target.value)
               }}
             >
               <option value="png">.PNG</option>
@@ -116,7 +108,7 @@ function App() {
           </div>
           <div className="relative flex gap-2 items-center">
             <label htmlFor="resizeWidth">
-              and resize to <b>width</b> ={" "}
+              and resize to <b>width</b> ={' '}
             </label>
             <input
               className="border w-24 border-zinc-200 px-2 py-1 rounded"
@@ -125,7 +117,7 @@ function App() {
               type="number"
               value={resizeWidth}
               onChange={(e) => {
-                setResizeWidth(e.target.value);
+                setResizeWidth(e.target.value)
               }}
               placeholder="width"
             />
@@ -136,13 +128,13 @@ function App() {
               id="resizeHeight"
               value={resizeHeight}
               onChange={(e) => {
-                setResizeHeight(e.target.value);
+                setResizeHeight(e.target.value)
               }}
               type="number"
               placeholder="height"
             />
           </div>
-          {format === "webp" && (
+          {format === 'webp' && (
             <div className="relative flex gap-2 items-center">
               <label htmlFor="resizeWidth">
                 and image <b>quality</b> will optimize to
@@ -155,9 +147,9 @@ function App() {
                 placeholder="75"
                 value={quality}
                 onChange={(e) => {
-                  setQuality(e.target.value);
+                  setQuality(e.target.value)
                 }}
-              />{" "}
+              />{' '}
               %
             </div>
           )}
@@ -166,7 +158,7 @@ function App() {
         <div className="mt-8">
           <button
             onClick={() => {
-              handleSubmit();
+              handleSubmit()
             }}
             className="bg-blue-600 font-semibold w-full block text-white shrink-0 rounded px-4 py-2 hover:bg-blue-500  transition  hover:transition"
           >
@@ -182,7 +174,7 @@ function App() {
                 onClick={() => copyToClipboard(result)}
                 className=" text-sm flex gap-1 hover:bg-blue-500  transition  hover:transition text-white bg-blue-600 items-center top-2 py-1 right-4 rounded cursor-pointer px-2"
               >
-                <VscCopy /> {copied ? "Copied!" : "Copy"}
+                <VscCopy /> {copied ? 'Copied!' : 'Copy'}
               </div>
             </div>
             <div className="mt-2 w-full px-4 pt-2 pb-2 text-balance break-words rounded bg-blue-50 border border-blue-200 text-zinc-400 relative">
@@ -192,80 +184,53 @@ function App() {
                     .filter((key) => options[key])
                     .map((key, index: number) => (
                       <span key={`option-${key}`}>
-                        {index === 0 ? "" : ":"}
+                        {index === 0 ? '' : ':'}
                         <span className="text-orange-600">
-                          {key}(
-                          <span className="font-semibold">
-                            {options[key].toString().trim()}
-                          </span>
-                          )
+                          {key}(<span className="font-semibold">{options[key].toString().trim()}</span>)
                         </span>
                       </span>
                     ))
-                : "default"}
+                : 'default'}
               /<span className="text-blue-600">{imageUrl}</span>
             </div>
 
             <div className="relative mt-4">
               <div>
                 <button
-                  disabled={imageState === "loading"}
+                  disabled={imageState === 'loading'}
                   onClick={() => handleShowTestImage()}
                   className="disabled:cursor-not-allowed disabled:hover:bg-white disabled:border-blue-300 disabled:hover:text-blue-300 disabled:text-blue-300 border-blue-600 text-sm inline-flex gap-4 items-center font-medium text-blue-600 border shrink-0 rounded px-4 py-2 hover:bg-blue-600 hover:text-white  transition  hover:transition"
                 >
-                  <VscPlay />{" "}
-                  {imageState === "loading" ? "Loading..." : "Preview"}
+                  <VscPlay /> {imageState === 'loading' ? 'Loading...' : 'Preview'}
                 </button>
               </div>
 
               {!!testUrl && (
                 <div>
-                  <span className="mt-4 block text-sm font-semibold">
-                    CODE:
-                  </span>
+                  <span className="mt-4 block text-sm font-semibold">CODE:</span>
                   <pre className="bg-blue-50 mt-2 border-blue-200 border text-blue-600">
                     <code>{`<img src="${testUrl}" />`.toString()}</code>
                   </pre>
-                  <img
-                    onLoad={handleOnLoadImage}
-                    className={`${imageState !== "loaded" ? "hidden" : ""}`}
-                    src={testUrl}
-                    alt=""
-                  />
+                  <img onLoad={handleOnLoadImage} className={`${imageState !== 'loaded' ? 'hidden' : ''}`} src={testUrl} alt="" />
                 </div>
               )}
             </div>
           </>
         )}
 
-        {!!error && (
-          <div className="mt-4 px-4 rounded py-2 text-sm bg-red-50 border border-red-200 text-red-500">
-            {error}
-          </div>
-        )}
+        {!!error && <div className="mt-4 px-4 rounded py-2 text-sm bg-red-50 border border-red-200 text-red-500">{error}</div>}
 
         <hr />
         <p className="mb-0 text-center">
-          <a
-            className="inline-flex gap-1 items-center"
-            href="https://status.phake.app/?utm_source=status_badge"
-            target="_blank"
-          >
-            <img
-              src="https://uptime.betterstack.com/status-badges/v3/monitor/1oiyb.svg"
-              alt="image proxy's status page"
-            />
+          <a className="inline-flex gap-1 items-center" href="https://status.phake.app/?utm_source=status_badge" target="_blank">
+            <img src="https://uptime.betterstack.com/status-badges/v3/monitor/1oiyb.svg" alt="image proxy's status page" />
           </a>
         </p>
         <p className="text-sm mt-0 mb-8 flex gap-1 justify-center items-center">
-          <a
-            className="inline-flex gap-1 items-center"
-            href="https://github.com/fuongz/image-proxy"
-            target="_blank"
-          >
+          <a className="inline-flex gap-1 items-center" href="https://github.com/fuongz/image-proxy" target="_blank">
             <VscGithubInverted /> Source code
           </a>
-          | Created by{" "}
+          | Created by{' '}
           <a href="https://phuongphung.com/?ref=image-proxy" target="_blank">
             fuongz
           </a>
@@ -273,7 +238,7 @@ function App() {
         </p>
       </div>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
