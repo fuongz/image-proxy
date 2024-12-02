@@ -1,46 +1,43 @@
-import io
+from functools import lru_cache
 import logging
 from datetime import datetime
 from io import BytesIO
 from re import findall
+from typing import Annotated
 from urllib.parse import unquote, urlparse, quote
+from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from PIL import Image
-from fastapi import FastAPI, HTTPException, Request, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pillow_heif import register_heif_opener
 
+from app import config
 from app.utils.file import pretty_size
 
 import requests
 
+from app.utils.image import image_to_byte_array
+
+# === LOG CONFIGURATION ===
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 console_handler = logging.StreamHandler()
 logger.addHandler(console_handler)
-
 formatter = logging.Formatter("%(levelname)s:   %(asctime)s %(message)s")
-
 console_handler.setFormatter(formatter)
 
-# Constants
-SUPPORTED_SCHEMES = ["http", "https"]
-MAX_FILE_SIZE = 12400000
-TIMEOUT = 15
-SUPPORTED_FILE_TYPES = [
-    "image/png",
-    "image/jpeg",
-    "image/heif",
-    "image/heic",
-    "image/webp",
-]
-SUPPORTED_OUTPUT_IMAGE_TYPES = ["JPG", "JPEG", "PNG", "WEBP"]
-
 app = FastAPI()
+
+
+@lru_cache
+def get_config():
+    return config.Config()
+
 
 origins = ["*"]
 
@@ -56,8 +53,13 @@ register_heif_opener()
 
 
 @app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    logger.error(str(exc.detail))
+async def http_exception_handler(
+    request: Request,
+    exc: StarletteHTTPException,
+):
+
+    if request.headers.get("host") != "testserver":
+        logger.error(str(exc.detail))
     return JSONResponse(
         status_code=exc.status_code,
         content=jsonable_encoder(
@@ -70,7 +72,10 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 
 
 @app.middleware("http")
-async def log_traffic(request: Request, call_next):
+async def log_traffic(
+    request: Request,
+    call_next,
+):
     start_time = datetime.now()
     response = await call_next(request)
     process_time = (datetime.now() - start_time).total_seconds()
@@ -87,7 +92,8 @@ async def log_traffic(request: Request, call_next):
         "process_time": process_time,
         "client_host": client_host,
     }
-    logger.info(str(log_params))
+    if request.headers.get("host") != "testserver":
+        logger.info(str(log_params))
     return response
 
 
@@ -106,8 +112,26 @@ async def standard_validation_exception_handler(
     )
 
 
+# === HEALTH CHECK ===
+class HealthCheck(BaseModel):
+    status: str = "OK"
+
+
+@app.get(
+    "/health",
+    tags=["healthcheck"],
+    summary="Perform a Health Check",
+    response_description="Return HTTP Status Code 200 (OK)",
+    status_code=status.HTTP_200_OK,
+    response_model=HealthCheck,
+)
+def get_health() -> HealthCheck:
+    return HealthCheck(status="OK")
+
+
+# === MAIN HANDLER ===
 @app.get("/{options}/{param:path}", name="path-convertor")
-def proxy(request: Request):
+def proxy(request: Request, config: Annotated[config.Config, Depends(get_config)]):
     options, url = request.path_params.values()
     query_params = quote(str(request.query_params))
     if query_params:
@@ -124,18 +148,18 @@ def proxy(request: Request):
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
             "Unsupported media type (1). (Only support: {})".format(
-                ", ".join(SUPPORTED_FILE_TYPES)
+                ", ".join(config.SUPPORTED_FILE_TYPES)
             ),
         )
 
     # Parse URL
     parsed_url = urlparse(decoded_url)
 
-    if parsed_url.scheme not in SUPPORTED_SCHEMES:
+    if parsed_url.scheme not in config.SUPPORTED_SCHEMES:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             "Unsupported scheme. (Only support: {})".format(
-                ", ".join(SUPPORTED_SCHEMES)
+                ", ".join(config.SUPPORTED_SCHEMES)
             ),
         )
 
@@ -146,14 +170,14 @@ def proxy(request: Request):
             "referer": f"{parsed_url.scheme}://{parsed_url.hostname}",
             "User-Agent": request.headers.get("user-agent"),
         },
-        timeout=TIMEOUT,
+        timeout=config.TIMEOUT,
     )
 
-    if resp.headers.get("Content-Type", "") not in SUPPORTED_FILE_TYPES:
+    if resp.headers.get("Content-Type", "") not in config.SUPPORTED_FILE_TYPES:
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
             "Unsupported media type (2). (Only support: {})".format(
-                ", ".join(SUPPORTED_FILE_TYPES)
+                ", ".join(config.SUPPORTED_FILE_TYPES)
             ),
         )
 
@@ -167,10 +191,10 @@ def proxy(request: Request):
             f"Can not detect file size, please try another image url!",
         )
 
-    if int(content_length) > int(MAX_FILE_SIZE):
+    if int(content_length) > int(config.MAX_FILE_SIZE):
         raise HTTPException(
             status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            f"Max file size is {pretty_size(MAX_FILE_SIZE)}",
+            f"Max file size is {pretty_size(config.MAX_FILE_SIZE)}",
         )
 
     im = Image.open(BytesIO(resp.content))
@@ -184,11 +208,11 @@ def proxy(request: Request):
     # Image quality
     image_quality = options_dict.get("quality", None)
 
-    if image_format not in SUPPORTED_OUTPUT_IMAGE_TYPES:
+    if image_format not in config.SUPPORTED_OUTPUT_IMAGE_TYPES:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             "Unsupported media type (3). (Only support: {})".format(
-                ", ".join(SUPPORTED_FILE_TYPES)
+                ", ".join(config.SUPPORTED_FILE_TYPES)
             ),
         )
 
@@ -207,29 +231,3 @@ def proxy(request: Request):
             f"image/{im.format.lower() if not image_format else image_format.lower()}"
         )
     return Response(content=img_response, media_type=media_type)
-
-
-def image_to_byte_array(
-    image: Image, image_format=None, size=None, quality=None
-) -> bytes:
-    new_size = None
-    if size and "," in size:
-        new_size = size.split(",")
-    img_byte_arr = io.BytesIO()
-    if new_size:
-        image.thumbnail([int(new_size[0]), int(new_size[1])], Image.Resampling.LANCZOS)
-
-    optimize_value = False
-    quality_value = 75
-    if image_format == "WEBP":
-        quality_value = int(quality) if quality else 75
-        optimize_value = True
-
-    image.save(
-        img_byte_arr,
-        format=image.format if not image_format else image_format,
-        quality=quality_value,
-        optimize=optimize_value,
-    )
-    img_byte_arr = img_byte_arr.getvalue()
-    return img_byte_arr
