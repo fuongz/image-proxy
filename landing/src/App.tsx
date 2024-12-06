@@ -79,12 +79,12 @@ function App() {
 
   return (
     <div className="flex mt-24 antialiased justify-center items-center">
-      <div className="container p-4 prose">
-        <h1 className="text-zinc-900">Image Proxy</h1>
-        <p className="text-zinc-700">A simple image converter API.</p>
+      <div className="container p-4 max-w-lg">
+        <h1 className="text-zinc-900 text-4xl mb-4 font-medium">Image Proxy</h1>
+        <p className="text-zinc-500 mb-6">A simple image converter API.</p>
 
         <div className="relative flex gap-4">
-          <input type="text" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="w-full border px-4 py-2 rounded border-zinc-200" placeholder="Enter image url" />
+          <input type="text" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="w-full border px-4 py-2 rounded-xl border-zinc-200" placeholder="Enter image url" />
         </div>
 
         <div className="relative mt-4 flex gap-4 whitespace-nowrap flex-wrap text-sm">
@@ -160,9 +160,9 @@ function App() {
             onClick={() => {
               handleSubmit()
             }}
-            className="bg-blue-600 font-semibold w-full block text-white shrink-0 rounded px-4 py-2 hover:bg-blue-500  transition  hover:transition"
+            className="cursor-pointer rounded-lg bg-neutral-900 px-4 font-semibold py-2 text-sm text-neutral-100 transition-colors hover:bg-neutral-700 active:bg-neutral-800"
           >
-            Get
+            Try it out
           </button>
         </div>
 
@@ -172,7 +172,7 @@ function App() {
               <div className="font-semibold mt-4">RESULT:</div>
               <div
                 onClick={() => copyToClipboard(result)}
-                className=" text-sm flex gap-1 hover:bg-blue-500  transition  hover:transition text-white bg-blue-600 items-center top-2 py-1 right-4 rounded cursor-pointer px-2"
+                className="rounded-lg text-sm flex gap-1 hover:bg-neutral-600 transition hover:transition text-white bg-neutral-700 items-center top-2 py-1 right-4 cursor-pointer px-3"
               >
                 <VscCopy /> {copied ? 'Copied!' : 'Copy'}
               </div>
@@ -199,16 +199,16 @@ function App() {
                 <button
                   disabled={imageState === 'loading'}
                   onClick={() => handleShowTestImage()}
-                  className="disabled:cursor-not-allowed disabled:hover:bg-white disabled:border-blue-300 disabled:hover:text-blue-300 disabled:text-blue-300 border-blue-600 text-sm inline-flex gap-4 items-center font-medium text-blue-600 border shrink-0 rounded px-4 py-2 hover:bg-blue-600 hover:text-white  transition  hover:transition"
+                  className="disabled:cursor-not-allowed mb-4 disabled:hover:bg-white disabled:border-blue-300 disabled:hover:text-blue-300 disabled:text-blue-300 border-blue-600 text-sm inline-flex gap-4 items-center font-medium text-blue-600 border shrink-0 rounded px-4 py-2 hover:bg-blue-600 hover:text-white  transition  hover:transition"
                 >
                   <VscPlay /> {imageState === 'loading' ? 'Loading...' : 'Preview'}
                 </button>
               </div>
 
               {!!testUrl && (
-                <div>
+                <div className="mb-6">
                   <span className="mt-4 block text-sm font-semibold">CODE:</span>
-                  <pre className="bg-blue-50 mt-2 border-blue-200 border text-blue-600">
+                  <pre className="bg-blue-50 mb-4 px-4 py-2 rounded-lg whitespace-break-spaces break-words mt-2 border-blue-200 border text-blue-600">
                     <code>{`<img src="${testUrl}" />`.toString()}</code>
                   </pre>
                   <img onLoad={handleOnLoadImage} className={`${imageState !== 'loaded' ? 'hidden' : ''}`} src={testUrl} alt="" />
@@ -235,7 +235,7 @@ function App() {
         {!!error && <div className="mt-4 px-4 rounded py-2 text-sm bg-red-50 border border-red-200 text-red-500">{error}</div>}
 
         <hr />
-        <p className="mb-0 text-center">
+        <p className="mb-0 mt-4 text-center">
           <a className="inline-flex gap-1 items-center" href="https://status.phake.app/?utm_source=status_badge" target="_blank">
             <img src="https://uptime.betterstack.com/status-badges/v3/monitor/1oiyb.svg" alt="image proxy's status page" />
           </a>
