@@ -1,3 +1,4 @@
+import '@fontsource-variable/dm-sans'
 import './App.css'
 import { VscCopy, VscGithubInverted, VscPlay } from 'react-icons/vsc'
 import { useEffect, useMemo, useState } from 'react'
@@ -43,6 +44,7 @@ function App() {
             .join(':')
         : 'default'
     }/${imageUrl}`
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options])
 
   const handleSubmit = () => {
@@ -80,7 +82,7 @@ function App() {
   return (
     <div className="flex mt-24 antialiased justify-center items-center">
       <div className="container p-4 max-w-lg">
-        <h1 className="text-zinc-900 text-4xl mb-4 font-medium">Image Proxy</h1>
+        <h1 className="text-zinc-900 text-4xl mb-4 font-semibold">Image Proxy</h1>
         <p className="text-zinc-500 mb-6">A simple image converter API.</p>
 
         <div className="relative flex gap-4">

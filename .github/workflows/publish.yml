@@ -1,0 +1,16 @@
+name: 'Publish docker image to github registry'
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Publish the image
+        run: |
+          docker login --username fuongz --password ${{secrets.GH_PAT}} ghcr.io
+          docker build . --tag ghcr.io/fuongz/image-proxy:${{ github.event.release.tag_name }}
+          docker push ghcr.io/fuongz/image-proxy:${{ github.event.release.tag_name }}
