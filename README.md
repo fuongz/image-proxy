@@ -1,6 +1,6 @@
 # Image Proxy - HEIC to PNG converter
 
-![Uptime](https://uptime.betterstack.com/status-badges/v3/monitor/1oiyb.svg) ![Run Unit Test via PyTest](https://github.com/fuongz/image-proxy/actions/workflows/run_test.yml/badge.svg)
+![Run Unit Test via PyTest](https://github.com/fuongz/image-proxy/actions/workflows/run_test.yml/badge.svg)
 
 ## Table of Contents
 
@@ -37,12 +37,6 @@ SUPPORTED_FILE_TYPES = [
     "image/webp",
 ]
 SUPPORTED_OUTPUT_IMAGE_TYPES = ["JPG", "JPEG", "PNG", "WEBP"]
-```
-
-## Demo
-
-```
-https://img.phake.app/format(webp):quality(70):size(200,200)/https://images.pexels.com/photos/27200179/pexels-photo-27200179/free-photo-of-landscape-of-hill-behind-flowers.jpeg
 ```
 
 ## Development
