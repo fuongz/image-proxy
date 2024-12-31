@@ -1,6 +1,6 @@
 # Image Proxy - HEIC to PNG converter
 
-![Run Unit Test via PyTest](https://github.com/fuongz/image-proxy/actions/workflows/run_test.yml/badge.svg)
+[![codecov](https://codecov.io/gh/fuongz/image-proxy/graph/badge.svg?token=TCMC32T0BW)](https://codecov.io/gh/fuongz/image-proxy) ![Unit Test](https://github.com/fuongz/image-proxy/actions/workflows/run_test.yml/badge.svg) ![GitHub Release](https://img.shields.io/github/v/release/fuongz/image-proxy)
 
 ## Table of Contents
 
